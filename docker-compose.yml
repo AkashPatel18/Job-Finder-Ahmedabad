@@ -1,0 +1,66 @@
+services:
+  app:
+    build: .
+    container_name: job-bot
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://jobbot:jobbot_secure_pass@postgres:5432/jobbot
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - job-bot-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: job-bot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jobbot
+      POSTGRES_PASSWORD: jobbot_secure_pass
+      POSTGRES_DB: jobbot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - job-bot-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobbot -d jobbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: job-bot-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - job-bot-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  job-bot-network:
+    driver: bridge

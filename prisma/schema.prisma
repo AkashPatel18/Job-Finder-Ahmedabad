@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Job listings discovered from scraping
+model Job {
+  id              String        @id @default(uuid())
+  platform        Platform
+  externalId      String        @map("external_id")
+  title           String
+  companyName     String        @map("company_name")
+  location        String?
+  jobType         JobType?      @map("job_type")
+  experienceRange String?       @map("experience_range")
+  salaryRange     String?       @map("salary_range")
+  description     String?
+  url             String
+  postedAt        DateTime?     @map("posted_at")
+  scrapedAt       DateTime      @default(now()) @map("scraped_at")
+  aiMatchScore    Float?        @map("ai_match_score")
+  aiMatchReason   String?       @map("ai_match_reason")
+  isEasyApply     Boolean       @default(false) @map("is_easy_apply")
+  skills          String[]      @default([])
+
+  // New fields for Job Command Center
+  hrLinkedinUrl     String?       @map("hr_linkedin_url")
+  hrName            String?       @map("hr_name")
+  careerPageUrl     String?       @map("career_page_url")
+  savedByUser       Boolean       @default(false) @map("saved_by_user")
+  userStatus        UserJobStatus @default(NEW) @map("user_status")
+  userNotes         String?       @map("user_notes")
+  linkedinMessage   String?       @map("linkedin_message")
+  applicationFormData String?     @map("application_form_data")
+
+  applications    Application[]
+
+  @@unique([platform, externalId])
+  @@index([platform])
+  @@index([aiMatchScore])
+  @@index([scrapedAt])
+  @@index([savedByUser])
+  @@index([userStatus])
+  @@map("jobs")
+}
+
+// Application tracking
+model Application {
+  id             String            @id @default(uuid())
+  jobId          String            @map("job_id")
+  status         ApplicationStatus @default(PENDING)
+  appliedAt      DateTime?         @map("applied_at")
+  coverLetter    String?           @map("cover_letter")
+  errorMessage   String?           @map("error_message")
+  screenshotPath String?           @map("screenshot_path")
+  attempts       Int               @default(0)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  job            Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([appliedAt])
+  @@map("applications")
+}
+
+// Blacklisted companies
+model CompanyBlacklist {
+  id          String   @id @default(uuid())
+  companyName String   @unique @map("company_name")
+  reason      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("company_blacklist")
+}
+
+// Application history for deduplication
+model ApplicationHistory {
+  id          String   @id @default(uuid())
+  companyName String   @map("company_name")
+  jobTitle    String   @map("job_title")
+  platform    Platform
+  appliedAt   DateTime @default(now()) @map("applied_at")
+
+  @@unique([companyName, jobTitle, platform])
+  @@index([companyName])
+  @@map("application_history")
+}
+
+// Scraping session logs
+model ScrapingSession {
+  id            String   @id @default(uuid())
+  platform      Platform
+  startedAt     DateTime @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  jobsFound     Int      @default(0) @map("jobs_found")
+  newJobs       Int      @default(0) @map("new_jobs")
+  errorMessage  String?  @map("error_message")
+  status        String   @default("running")
+
+  @@index([platform])
+  @@index([startedAt])
+  @@map("scraping_sessions")
+}
+
+enum Platform {
+  LINKEDIN
+  NAUKRI
+  INDEED
+  WELLFOUND
+  INSTAHYRE
+  GLASSDOOR
+  CUTSHORT
+  REMOTEOK
+}
+
+enum JobType {
+  REMOTE
+  HYBRID
+  ONSITE
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+}
+
+enum ApplicationStatus {
+  PENDING
+  QUEUED
+  APPLYING
+  APPLIED
+  FAILED
+  SKIPPED
+  INTERVIEW
+  REJECTED
+  OFFER
+}
+
+// User's personal tracking status for jobs
+enum UserJobStatus {
+  NEW
+  VIEWED
+  SAVED
+  APPLYING
+  APPLIED
+  INTERVIEWING
+  REJECTED
+  OFFER
+  NOT_INTERESTED
+}
+
+// Cold Email Outreach tracking
+model ColdEmailOutreach {
+  id                String            @id @default(uuid())
+  companyName       String            @map("company_name")
+  companyDomain     String            @map("company_domain")
+  recipientEmail    String            @map("recipient_email")
+  recipientName     String?           @map("recipient_name")
+  recipientPosition String?           @map("recipient_position")
+  emailSubject      String            @map("email_subject")
+  status            ColdEmailStatus   @default(SENT)
+  sentAt            DateTime          @default(now()) @map("sent_at")
+  openedAt          DateTime?         @map("opened_at")
+  respondedAt       DateTime?         @map("responded_at")
+  errorMessage      String?           @map("error_message")
+  jobTitle          String?           @map("job_title")
+  jobUrl            String?           @map("job_url")
+
+  @@index([companyName])
+  @@index([status])
+  @@index([sentAt])
+  @@map("cold_email_outreach")
+}
+
+enum ColdEmailStatus {
+  PENDING
+  SENT
+  FAILED
+  OPENED
+  RESPONDED
+  BOUNCED
+}
