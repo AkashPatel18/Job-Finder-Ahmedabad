@@ -290,11 +290,21 @@ class CompanyAggregatorService {
     const projectRoot = join(__dirname, '../..');
     const files: string[] = [];
 
+    // Known scraper output files
+    const knownOutputFiles = [
+      'clutch-companies.csv',
+      'goodfirms-companies.csv',
+      'justdial-companies.csv',
+      'ambitionbox-companies.csv',
+      'glassdoor-companies.csv',
+    ];
+
     // Scan project root for CSV/JSON files
     const rootFiles = readdirSync(projectRoot);
     for (const file of rootFiles) {
       const ext = extname(file).toLowerCase();
-      if (['.csv', '.json'].includes(ext) && file.includes('compan')) {
+      // Include files with 'compan' in name OR known scraper outputs
+      if (['.csv', '.json'].includes(ext) && (file.includes('compan') || knownOutputFiles.includes(file))) {
         files.push(join(projectRoot, file));
       }
     }
