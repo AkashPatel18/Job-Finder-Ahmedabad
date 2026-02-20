@@ -1,0 +1,16 @@
+# Render.com Blueprint
+# Deploy with one click: https://render.com/deploy
+
+services:
+  - type: web
+    name: ahmedabad-it-companies
+    env: node
+    plan: free
+    buildCommand: npm install tsx typescript
+    startCommand: npx tsx src/companies-server.ts
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000

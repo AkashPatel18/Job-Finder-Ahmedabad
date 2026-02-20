@@ -1,0 +1,28 @@
+# Minimal Dockerfile - Companies Directory Only
+# No Playwright, no database, just the companies page
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy only what's needed
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY src/companies-server.ts ./src/
+COPY src/data/companies.json ./src/data/
+
+# Install minimal dependencies
+RUN npm install --omit=dev typescript tsx
+
+# Build
+RUN npx tsc src/companies-server.ts --outDir dist --esModuleInterop --module NodeNext --moduleResolution NodeNext --target ES2022 || true
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Start
+CMD ["npx", "tsx", "src/companies-server.ts"]

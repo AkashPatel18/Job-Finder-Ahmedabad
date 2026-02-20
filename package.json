@@ -10,6 +10,8 @@
     "command-center": "tsx src/command-center.ts",
     "command-center:scheduler": "tsx src/command-center.ts --scheduler",
     "dashboard": "tsx src/command-center.ts",
+    "companies:serve": "tsx src/companies-server.ts",
+    "start:minimal": "node dist/companies-server.js",
     "search": "tsx src/search-jobs.ts",
     "search:web": "tsx src/search-jobs.ts",
     "monitor": "tsx src/monitor-careers.ts",
