@@ -1157,13 +1157,14 @@ class APIServer {
           html += '<div class="companies-grid">';
 
           for (const company of filteredCompanies) {
-            const typeClass = company.type.toLowerCase().includes('mnc') ? 'type-mnc' :
-                              company.type.toLowerCase().includes('large') ? 'type-large' :
-                              company.type.toLowerCase().includes('startup') ? 'type-startup' : 'type-midsize';
+            const companyType = company.type || 'Imported';
+            const typeClass = companyType.toLowerCase().includes('mnc') ? 'type-mnc' :
+                              companyType.toLowerCase().includes('large') ? 'type-large' :
+                              companyType.toLowerCase().includes('startup') ? 'type-startup' : 'type-midsize';
 
             html += '<div class="company-card">';
             html += '<div class="company-name">' + escapeHtml(company.name) + '</div>';
-            html += '<span class="company-type ' + typeClass + '">' + company.type + '</span>';
+            html += '<span class="company-type ' + typeClass + '">' + companyType + '</span>';
             html += '<div class="company-meta">';
             if (company.employees) html += 'Employees: ' + company.employees + '<br>';
             if (company.specialty) html += company.specialty;
@@ -1187,8 +1188,9 @@ class APIServer {
     function filterCompanies(companies) {
       return companies.filter(company => {
         // Type filter
-        if (currentFilter === 'mnc' && !company.type.toLowerCase().includes('mnc')) return false;
-        if (currentFilter === 'startup' && !company.type.toLowerCase().includes('startup')) return false;
+        const companyType = (company.type || '').toLowerCase();
+        if (currentFilter === 'mnc' && !companyType.includes('mnc')) return false;
+        if (currentFilter === 'startup' && !companyType.includes('startup')) return false;
 
         // Search filter
         if (searchQuery) {

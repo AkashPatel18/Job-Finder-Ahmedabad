@@ -1,0 +1,23 @@
+# Company Input File
+#
+# Paste company names here, one per line.
+# The aggregator will automatically:
+# - Generate Google search URLs for careers pages
+# - Deduplicate against existing companies
+# - Add them to the database
+#
+# Supported formats:
+# 1. Simple company names (one per line)
+# 2. CSV format: name,careers_url,specialty
+#
+# Example:
+# ABC Technologies
+# XYZ Software Solutions
+#
+# Or with URLs:
+# ABC Technologies,https://abc.com/careers,AI/ML
+#
+# ---------------------------------------------------------
+# PASTE YOUR COMPANIES BELOW THIS LINE:
+# ---------------------------------------------------------
+
