@@ -762,25 +762,95 @@ function generateHTML(): string {
 </html>`;
 }
 
+// Security headers
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+};
+
+// Simple rate limiting (in-memory, resets on restart)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 100; // requests per window
+const RATE_WINDOW = 60 * 1000; // 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_WINDOW });
+    return false;
+  }
+
+  record.count++;
+  return record.count > RATE_LIMIT;
+}
+
+function getClientIP(req: IncomingMessage): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return (Array.isArray(forwarded) ? forwarded[0] : forwarded).split(',')[0].trim();
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+
 function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const url = req.url || '/';
+  const clientIP = getClientIP(req);
 
+  // Rate limiting check
+  if (isRateLimited(clientIP)) {
+    res.writeHead(429, {
+      'Content-Type': 'application/json',
+      'Retry-After': '60',
+      ...securityHeaders
+    });
+    res.end(JSON.stringify({ error: 'Too many requests. Please wait.' }));
+    return;
+  }
+
+  // Health check (no rate limit for health checks)
   if (url === '/health' || url === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      ...securityHeaders
+    });
     res.end(JSON.stringify({ status: 'ok', companies: countCompanies() }));
     return;
   }
 
+  // API endpoint with restricted CORS
   if (url === '/api/companies') {
+    const origin = req.headers.origin || '';
+    const allowedOrigins = [
+      'https://gujarat-it-companies.onrender.com',
+      'https://job-finder-ahmedabad.onrender.com',
+      'http://localhost:3000',
+      'http://localhost:3456',
+    ];
+
+    const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
     res.writeHead(200, {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Max-Age': '86400',
+      ...securityHeaders
     });
     res.end(JSON.stringify(companiesData));
     return;
   }
 
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  // Main page with CSP
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;",
+    ...securityHeaders
+  });
   res.end(generateHTML());
 }
 
