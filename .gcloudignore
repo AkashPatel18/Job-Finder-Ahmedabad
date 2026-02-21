@@ -1,9 +1,0 @@
-# Ignore everything except what's needed
-*
-
-# Include these
-!src/companies-server.ts
-!src/data/companies.json
-!package.json
-!package-lock.json
-!Dockerfile.cloudrun
