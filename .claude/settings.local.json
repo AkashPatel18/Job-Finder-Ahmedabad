@@ -5,7 +5,10 @@
       "Bash(curl:*)",
       "Bash(chmod:*)",
       "Bash(timeout 5 npx tsx:*)",
-      "Bash(timeout 3 npx tsx:*)"
+      "Bash(timeout 3 npx tsx:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
